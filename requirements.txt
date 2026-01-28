@@ -1,0 +1,15 @@
+# --- Tratamiento de Datos ---
+pandas>=2.1.0       
+numpy>=1.24.0        
+
+# --- Inteligencia Artificial ---
+scikit-learn>=1.3.0  
+
+# --- Visualización & App ---
+streamlit>=1.28.0    
+plotly>=5.18.0       
+watchdog>=3.0.0      
+
+# --- Conexión Vehículo ---
+obd>=0.7.1           
+pyserial>=3.5        
