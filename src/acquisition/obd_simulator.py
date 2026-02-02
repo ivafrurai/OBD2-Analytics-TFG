@@ -112,7 +112,7 @@ class OBDSimulator:
 
         current_speed_ms = self.speed / 3.6
 
-        if dt>0:
+        if dt>0 and self.distance > 0.1:
             self.acceleration = (current_speed_ms - last_speed_ms) / dt
 
         self.distance += current_speed_ms * dt #es un cuentakilometros en metros.
