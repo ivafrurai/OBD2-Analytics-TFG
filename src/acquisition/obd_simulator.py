@@ -1,7 +1,14 @@
+import os
+import sys
 import time
 import random
 from datetime import datetime 
 import math 
+
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../'))
+if project_root not in sys.path:
+    sys.path.append(project_root)
+from src.collection.data_logger import DataLogger
 
 class OBDSimulator:
     def __init__(self):
@@ -166,12 +173,15 @@ class OBDSimulator:
 if __name__ == "__main__":
     print("Simulando Motor...")
     simulator = OBDSimulator()
+    logger = DataLogger(prefix='synthetic_healthy')
     try:
         while True:
             data = simulator.get_data()
+            logger.log(data)
             output = " | ".join([f"{key}: {value}" for key, value in data.items()])
             print("-"*150)
             print(output)
-            time.sleep(0.5)
+            time.sleep(0.2)
     except KeyboardInterrupt:
+        logger.close()
         print("Simulación terminada.")
