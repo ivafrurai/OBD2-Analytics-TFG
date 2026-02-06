@@ -32,18 +32,14 @@ class OBDSimulator:
         self.fuel_average = 7.5
 
         #Variables de control
-        self.last_update_time = time.time() #marca de tiempo para calcular la derivada
+        #self.last_update_time = time.time() #marca de tiempo para calcular la derivada
         self.target_speed = 0.0
         self.fuel_buffer = [] #buffer para el calculo de medias
         self.time_counter = 0.0 #reloj interno continuo para la oscilacion de sensores
 
 
-    def update_physics(self):
+    def update_physics(self, dt=0.1):
 
-        current_time = time.time()
-        dt = current_time - self.last_update_time
-        self.last_update_time = current_time
-        if dt > 1.0: dt = 0.1  #se impone a 0.1 para evitar una aceleracion enorme
         self.time_counter += dt
 
         #SIMULA EL CONDUCTOR
@@ -88,7 +84,7 @@ class OBDSimulator:
 
         self.engine_load = (self.throttle_pos * 0.8) + 15 + random.uniform(-1,1) #el 15 es una carga minima del motor en ralentí, contando con friccion y eso
 
-        base_maf = (self.rpm * (self.engine_load/100)) /15 #el 15 es una constante de calibracion para que a 800 rpm y carga 20% el MAF sea 3 g/s
+        base_maf = (self.rpm * (self.engine_load/100)) /50 #el 50 es una constante de calibracion para que a 800 rpm y carga 20% el MAF sea 3 g/s
         self.MAF = max(2.0, base_maf + random.uniform(-0.5,0.5)) #agrega ruido al MAF, con un minimo de 2 g/s
 
         #FUEL TRIMS
@@ -96,34 +92,48 @@ class OBDSimulator:
         noise = random.uniform(-2,2)
         self.stft = oscillation + noise #el stft oscila rapido alrededor de 0
 
+
         self.ltft = (self.ltft * 0.99) + (self.stft*0.01) #el ltft sigue al stft muy lentamente, si el stft es positivo mucho tiempo, el ltft sube para compensar.
 
 
         #MOVIMIENTO 
-        last_speed_ms = self.speed / 3.6 #el 3.6 es para convertir de km/h a m/s
-        gear_ratio_speed = self.rpm /55.0 #el 55 es una relaccion de transmision para simular una marcha fija.
-        if self.brake_pos > 0: #vuelve a simular el pisar el embrague, no hay freno motor, solo freno normal.
-            self.target_speed = max(0, self.speed - (self.brake_pos * 0.6)) #el 0.6 es la potencia de frenado.
-        elif self.throttle_pos == 0 and self.speed < 15: #ismulamos el comportamiento de pisar embrague al llegar al semáforo.
+        last_speed_ms = self.speed / 3.6 #convertimos a m/s para el calculo de aceleracion
+        gear_ratio_speed = self.rpm / 55.0  # Relación de marcha simulada
+
+        if self.brake_pos > 0: 
+            # Si frena, el objetivo es bajar velocidad drásticamente
+            # Multiplicamos por un factor para que el freno tenga "fuerza"
+            braking_force = self.brake_pos * 0.5 
+            self.target_speed = max(0, self.speed - braking_force)
+            
+        elif self.throttle_pos == 0 and self.speed < 15:
+            # Simulación de embrague pisado al llegar a semáforo
             self.target_speed = 0.0
+            
         else:
+            # Si acelera o mantiene, la velocidad depende de las RPM
             self.target_speed = gear_ratio_speed
         
-        #inercia 
+        # 3. APLICAR INERCIA (Suavizado para simular la masa del coche)
+        # Ajuste fino: Si ves que la aceleración da picos muy altos, baja el 0.05 a 0.02
         if self.target_speed > self.speed:
-            # Acelerando (masa del coche)
-            self.speed = (self.speed * 0.95) + (self.target_speed * 0.05)
-        else:
-            # Decelerando (freno motor o inercia)
+            # Acelerando: La masa se opone al cambio (factor 0.05)
             self.speed = (self.speed * 0.98) + (self.target_speed * 0.02)
+        else:
+            # Decelerando: El freno/rozamiento actúa (factor 0.05 para que no sea un frenazo en seco)
+            self.speed = (self.speed * 0.95) + (self.target_speed * 0.05)
 
+        # 4. FOTO ACTUAL
         current_speed_ms = self.speed / 3.6
 
-        if dt>0 and self.distance > 0.1:
+        # 5. CÁLCULO DE ACELERACIÓN (Con protección anti-crash)
+        if dt > 0.001:  # Evitamos dividir por 0 o números infinitesimales
             self.acceleration = (current_speed_ms - last_speed_ms) / dt
+        else:
+            self.acceleration = 0.0
 
-        self.distance += current_speed_ms * dt #es un cuentakilometros en metros.
-
+        # 6. ACTUALIZAR ODOMETRO
+        self.distance += current_speed_ms * dt
 
         #consumo y combustible
         correction_factor = 1.0 + (self.stft / 100.0)
@@ -133,7 +143,7 @@ class OBDSimulator:
             fuel_l_h = 0.0
 
         if self.speed < 5:
-            self.fuel_instant = fuel_l_h * 10
+            self.fuel_instant = fuel_l_h
         else:
             self.fuel_instant = (fuel_l_h /self.speed) *100 #para convertir en L/100km.
 
@@ -152,7 +162,6 @@ class OBDSimulator:
 
 
     def get_data(self):
-        self.update_physics()
         return {
             "timestamp": datetime.now().isoformat(),
             "rpm": int(self.rpm),
@@ -176,12 +185,13 @@ if __name__ == "__main__":
     logger = DataLogger(prefix='synthetic_healthy')
     try:
         while True:
+            simulator.update_physics(0.1)
             data = simulator.get_data()
             logger.log(data)
             output = " | ".join([f"{key}: {value}" for key, value in data.items()])
             print("-"*150)
             print(output)
-            time.sleep(0.2)
+            time.sleep(0.1)
     except KeyboardInterrupt:
         logger.close()
         print("Simulación terminada.")
