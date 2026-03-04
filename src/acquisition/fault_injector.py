@@ -44,7 +44,7 @@ class OBDFaultInjector(OBDSimulator):
 if __name__ == "__main__":
 
     # Opciones: 'vacuum_leak', 'coolant_leak', 'sensor_drift'
-    AVERIA_ELEGIDA = 'sensor_drift'
+    AVERIA_ELEGIDA = 'vacuum_leak'
 
     simulador = OBDFaultInjector(fault_type=AVERIA_ELEGIDA)
     logger = DataLogger(prefix=f"synthetic_anomaly_{AVERIA_ELEGIDA}")
