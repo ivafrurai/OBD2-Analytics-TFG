@@ -3,6 +3,7 @@ import os
 import glob
 from sklearn.preprocessing import StandardScaler
 import joblib
+from src.processing.feature_engineering import add_temporal_features
 
 
 def get_latest_file(pattern):
@@ -26,6 +27,8 @@ def main():
     print("Buscando archivos CSV mas reciente...")
     file_healthy_str = get_latest_file("synthetic_healthy_*.csv") #se coje el csv sano 
     df_healthy = pandas.read_csv(file_healthy_str)# se pasa a DataFrame
+    df_healthy = add_temporal_features(df_healthy) # se añaden las features temporales
+    df_healthy.to_csv('data/processed/healthy_temporal.csv', index=False) # se guarda el csv con las features temporales
     print(df_healthy.columns.tolist())
     bad_columns = ['timestamp', 'Distance (m)', 'average_fuel'] #se eliminan las columnas que dependen del humano
     df_healthy = df_healthy.drop(columns=bad_columns)
@@ -39,3 +42,12 @@ def main():
 
 if __name__=="__main__":
     main()
+
+
+#Leer el CSV crudo.
+
+#Pasarlo por add_temporal_features(df) (Añadir el factor tiempo).
+
+#Pasarlo por el StandardScaler (Escalar las 14 columnas resultantes).
+
+#Guardar el CSV procesado final.

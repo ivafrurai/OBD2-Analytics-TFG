@@ -2,7 +2,8 @@ import pandas as pd
 import os
 import glob
 import joblib
-
+import src
+from src.processing.feature_engineering import add_temporal_features
 
 def get_latest_file(pattern):
     file_path =  os.path.join('data', 'raw', pattern)
@@ -26,6 +27,8 @@ def main():
     for csv, scaled_csv in anomalies.items():
         latest_file = get_latest_file(csv) #cojemos el csv mas reciente
         latest_df = pd.read_csv(latest_file) #lo pasamos a dataframe
+        latest_df = add_temporal_features(latest_df) #añadimos las features temporales
+        latest_df.to_csv('data/processed/'+ scaled_csv.split('.')[0]+'_temporal.csv', index=False) #guardamos el csv con las features temporales
         bad_columns = ['timestamp', 'Distance (m)', 'average_fuel'] #las columnas que hay que eliminar 
         latest_df = latest_df.drop(columns=bad_columns) #se quitan esas columnas
         scaled_ndarray = scaler.transform(latest_df) #usamos transform en lugar de fit_transform()
