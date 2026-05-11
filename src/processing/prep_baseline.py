@@ -1,4 +1,4 @@
-import pandas
+import pandas as pd
 import os
 import glob
 from sklearn.preprocessing import StandardScaler
@@ -6,48 +6,31 @@ import joblib
 from src.processing.feature_engineering import add_temporal_features
 
 
-def get_latest_file(pattern):
-    file_path =  os.path.join('data', 'raw', pattern)
-    file = glob.glob(file_path)
-
-    if not file:
-        print('No se han encontrado ningun archivo')
-        return None
-    
-    return max(file, key=os.path.getctime)
-
 def scale_dataset(df):
     scaler = StandardScaler()
     scaled_ndarray = scaler.fit_transform(df)
     joblib.dump(scaler, 'src/processing/scaler_healthy.pkl')
-    scaled_df = pandas.DataFrame(scaled_ndarray, columns= df.columns)
+    scaled_df = pd.DataFrame(scaled_ndarray, columns= df.columns)
     return scaled_df
 
 def main():
     print("Buscando archivos CSV mas reciente...")
-    file_healthy_str = get_latest_file("synthetic_healthy_*.csv") #se coje el csv sano 
-    df_healthy = pandas.read_csv(file_healthy_str)# se pasa a DataFrame
-    df_healthy = add_temporal_features(df_healthy) # se añaden las features temporales
-    df_healthy.to_csv('data/processed/healthy_temporal.csv', index=False) # se guarda el csv con las features temporales
-    print(df_healthy.columns.tolist())
-    bad_columns = ['timestamp', 'Distance (m)', 'average_fuel'] #se eliminan las columnas que dependen del humano
-    df_healthy = df_healthy.drop(columns=bad_columns)
-    print(df_healthy.columns.tolist())
 
-    healthy_scaled_df = scale_dataset(df_healthy)
-    print(type(healthy_scaled_df))
-    healthy_scaled_df.to_csv('data/processed/healthy_scaled.csv', index=False)
+    df = pd.read_csv('data/raw/real_dataset.csv') #cargamos el csv sano
+
+    df_con_diff = add_temporal_features(df) #añadimos las features temporales al csv sano
+
+    df_con_diff.to_csv('data/processed/healthy_diff.csv', index=False) # se guarda el csv con las features temporales
+    print('Columnas del DataFrame:', df_con_diff.columns.tolist())
+
+    df_con_diff = df_con_diff.drop(columns=['timestamp', 'segment_file']) #quitamos la columna timestamp y segment_file para el escalado
+    print('Descripción del DataFrame (sin timestamp ni segment_file):', df_con_diff.describe())
+
+    scaled_df = scale_dataset(df_con_diff) #escalamos el csv con las features temporales
+    print('Descripción del DataFrame escalado:', scaled_df.describe())
+    scaled_df.to_csv('data/processed/healthy_diff_scaled.csv', index=False)# se guarda el csv con las features temporales escaladas
 
 
 
 if __name__=="__main__":
     main()
-
-
-#Leer el CSV crudo.
-
-#Pasarlo por add_temporal_features(df) (Añadir el factor tiempo).
-
-#Pasarlo por el StandardScaler (Escalar las 14 columnas resultantes).
-
-#Guardar el CSV procesado final.
