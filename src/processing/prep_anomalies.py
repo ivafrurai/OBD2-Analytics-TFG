@@ -24,11 +24,11 @@ def main():
 
         #escalar
         df_diff_dropped = df_diff.drop(columns=['timestamp', 'segment_file'])
-        print('Descripción del DataFrame (sin timestamp ni segment_file):', df_diff.describe())
+        #print('Descripción del DataFrame (sin timestamp ni segment_file):', df_diff.describe())
         scaled_ndarray = scaler.transform(df_diff_dropped)
         df_scaled = pd.DataFrame(scaled_ndarray, columns=df_diff_dropped.columns) #pasamos de Ndarray a DataFrame
         df_scaled.insert(0, 'timestamp', df_diff['timestamp'].values)
-        print('Descripción del DataFrame escalado:', df_scaled.describe())
+        #print('Descripción del DataFrame escalado:', df_scaled.describe())
 
         ruta_guardar = os.path.join('data/processed/test/' , 'diff_scaled_' + nombre_archivo)
         df_scaled.to_csv(ruta_guardar, index = False)

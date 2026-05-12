@@ -1,46 +1,56 @@
 import pandas as pd
 import joblib
 
+import pandas as pd
+import joblib
+import glob
+import os
+
 def evaluar_anomalias():
-    # Diccionario con las rutas de los archivos procesados (escalados de 14 columnas)
-    anomalies = {
-        "data/processed/vacuum_scaled.csv": "Fuga de Vacío",
-        "data/processed/coolant_scaled.csv": "Fuga de Refrigerante",
-        "data/processed/drift_scaled.csv": "Desviación MAF"
-    }
     
-    print("Cargando el Centinela (Modelo con memoria temporal)...")
+    path_test = 'data/processed/test/diff_scaled_*.csv'
+    archivos_test = glob.glob(path_test)
     model = joblib.load('src/models/sentinel_model.pkl')
+    print("-" * 60)
     
-    print("-" * 50)
-    
-    for csv_path, nombre_averia in anomalies.items():
+    for csv_path in archivos_test:
+        nombre_archivo = os.path.basename(csv_path)
         try:
-            # 1. Cargar el archivo
+            #Carga y limpieza para la IA
             df = pd.read_csv(csv_path)
             
-            # 2. El modelo juzga toda la termodinámica
-            predicciones = model.predict(df)
-            df['anomaly'] = predicciones
+            # ELIMINAR METADATOS
+            columnas_ia = [c for c in df.columns if c not in ['timestamp', 'segment_file']]
+            X = df[columnas_ia]
             
-            # 3. El Bypass: Ignoramos los primeros 250 segundos (Arranque en frío / Open Loop)
-            motor_caliente = df.iloc[250:]
+            #Predicción
+            scores = model.decision_function(X)
             
-            # 4. Buscamos dónde gritó el modelo por primera vez en caliente
-            fallos = motor_caliente[motor_caliente['anomaly'] == -1]
+            df['anomaly'] = model.predict(X)
+        
+            # Se ignoran los primeros 1000 segundos para que el motor "se asiente"
+            offset = 1000
+            fase_estable = df.iloc[offset:]
+            
+            # 5. Análisis de Resultados
+            fallos = fase_estable[fase_estable['anomaly'] == -1]
+            total_anomalias = len(fallos)
+            porcentaje = (total_anomalias / len(fase_estable)) * 100
             
             if not fallos.empty:
-                primer_fallo_real = fallos.index[0]
-                print(f"[{nombre_averia}] ALARMA ROJA: Avería insostenible detectada en el segundo {primer_fallo_real}")
+                primer_fallo_idx = fallos.index[0]
+                tiempo_fallo = df.loc[primer_fallo_idx, 'timestamp']
+                print(f"[{nombre_archivo}] DETECTADO")
+                print(f"   -> Primera anomalía: Segundo {primer_fallo_idx} ({tiempo_fallo})")
+                print(f"   -> Score medio en zona error (3000-4000): {scores[3000:4000].mean():.4f}")
+                print(f"   -> Gravedad: {porcentaje:.2f}% del trayecto.")
             else:
-                print(f"[{nombre_averia}] El modelo NO detectó la avería tras el calentamiento. (Falso Negativo)")
+                print(f"[{nombre_archivo}] Sin anomalías detectadas.")
                 
-        except FileNotFoundError:
-            print(f"Error: No encuentro el archivo {csv_path}. ¿Seguro que pasaste el prep_anomalies?")
-        except ValueError as e:
-            print(f"Error de dimensiones en {nombre_averia}: {e}")
+        except Exception as e:
+            print(f"Error procesando {nombre_archivo}: {e}")
 
-    print("-" * 50)
+    print("-" * 60)
 
 if __name__ == "__main__":
     evaluar_anomalias()
