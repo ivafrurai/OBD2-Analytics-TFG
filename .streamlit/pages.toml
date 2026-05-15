@@ -4,11 +4,6 @@ name = "Home"
 icon = "🏠"
 
 [[pages]]
-path = "pages/demo.py"
-name = "Modo Demo"
-icon = ":books:"
-
-[[pages]]
 path = "pages/user_upload.py"
 name = "Subir Telemetría"
 icon = "📤"
