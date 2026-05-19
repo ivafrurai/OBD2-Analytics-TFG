@@ -5,6 +5,7 @@ import pandas as pd
 import joblib
 import glob
 import os
+#ESTE SCRIPT ES SOLO PARA EVALUAR LOS CSV DE PRUEBA, NO FORMA PARTE DE LA APLICACIÓN FINAL. SE EJECUTA DESDE LA RAÍZ DEL PROYECTO.
 
 def evaluar_anomalias():
     
@@ -16,23 +17,18 @@ def evaluar_anomalias():
     for csv_path in archivos_test:
         nombre_archivo = os.path.basename(csv_path)
         try:
-            #Carga y limpieza para la IA
             df = pd.read_csv(csv_path)
             
-            # ELIMINAR METADATOS
             columnas_ia = [c for c in df.columns if c not in ['timestamp', 'segment_file']]
             X = df[columnas_ia]
             
-            #Predicción
             scores = model.decision_function(X)
             
             df['anomaly'] = model.predict(X)
         
-            # Se ignoran los primeros 1000 segundos para que el motor "se asiente"
             offset = 1000
             fase_estable = df.iloc[offset:]
             
-            # 5. Análisis de Resultados
             fallos = fase_estable[fase_estable['anomaly'] == -1]
             total_anomalias = len(fallos)
             porcentaje = (total_anomalias / len(fase_estable)) * 100

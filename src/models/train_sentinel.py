@@ -3,7 +3,7 @@ from sklearn.ensemble import IsolationForest
 import joblib
 
 def fit_df():
-    sentinel = IsolationForest(contamination=0.1, random_state=42)
+    sentinel = IsolationForest(contamination=0.005, random_state=42)
     sentinel.fit(pd.read_csv('data/processed/healthy_diff_scaled.csv'))
     joblib.dump(sentinel, 'src/models/sentinel_model.pkl')
 
