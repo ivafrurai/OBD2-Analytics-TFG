@@ -1,9 +1,9 @@
 [[pages]]
 path = "pages/home.py"
 name = "Home"
-icon = "🏠"
+icon = ":house:"
 
 [[pages]]
 path = "pages/user_upload.py"
 name = "Subir Telemetría"
-icon = "📤"
+icon = ":open_file_folder:"

@@ -42,13 +42,19 @@ def inyectar_error(df, fila_inicio, duracion, tipo):
         df_copy.loc[fila_inicio:final, 'stft'] = 24.0 + np.random.normal(0, 1, L) # STFT altísimo porque la ECU intenta corregir la mezcla pobre
 
     elif tipo == 'coolant_temp':
-        # La ECU corta inyección para salvar el bloque.
-        df_copy.loc[fila_inicio:final, 'coolant_temp'] = 140.0 + np.random.normal(0, 0.5, L)
-        df_copy.loc[fila_inicio:final, 'engine_load'] = 15.0 + np.random.normal(0, 2, L) # Carga estrangulada
-        df_copy.loc[fila_inicio:final, 'rpm'] = 1500.0 + np.random.normal(0, 50, L) # Revs limitadas
-        df_copy.loc[fila_inicio:final, 'throttle_position'] = df_copy.loc[fila_inicio:final, 'throttle_position'] * 0.3
-        df_copy.loc[fila_inicio:final, 'MAF'] = 5.0 + np.random.normal(0, 0.5, L)
-        df_copy.loc[fila_inicio:final, 'speed'] = df_copy.loc[fila_inicio:final, 'speed'] * 0.7 # El coche frena
+        
+        df_copy.loc[fila_inicio:final, 'coolant_temp'] = 145.0 + np.random.normal(0, 5, L)
+        
+        df_copy.loc[fila_inicio:final, 'throttle_position'] = np.clip(df_copy.loc[fila_inicio:final, 'throttle_position'] * 1.5 + 20, 0, 100.0)
+        df_copy.loc[fila_inicio:final, 'speed'] = df_copy.loc[fila_inicio:final, 'speed'] * 0.4
+        df_copy.loc[fila_inicio:final, 'rpm'] = df_copy.loc[fila_inicio:final, 'rpm'] * 0.6 + np.random.normal(0, 300, L)
+        df_copy.loc[fila_inicio:final, 'engine_load'] = df_copy.loc[fila_inicio:final, 'engine_load'] * 0.2 + np.random.normal(0, 3, L)
+        df_copy.loc[fila_inicio:final, 'MAF'] = df_copy.loc[fila_inicio:final, 'MAF'] * 0.3 + np.random.normal(0, 1, L)
+        if 'stft' in df_copy.columns:
+            df_copy.loc[fila_inicio:final, 'stft'] = 25.0 + np.random.normal(0, 2, L)
+            
+        if 'fuel_instant' in df_copy.columns:
+            df_copy.loc[fila_inicio:final, 'fuel_instant'] = df_copy.loc[fila_inicio:final, 'fuel_instant'] * 2.5 + np.random.normal(0, 2, L)
 
     elif tipo == 'fuga_vacio':
         df_copy.loc[fila_inicio:final, 'MAF'] = df_copy.loc[fila_inicio:final, 'MAF'] * 0.2 + np.random.normal(0, 0.2, L)

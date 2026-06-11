@@ -26,5 +26,8 @@ def funcion():
     print(df_final.columns)
     df_final.to_csv('data/raw/real_dataset.csv', index=False)
 
+    test_dir = os.path.join('data', 'raw', 'test')
+    df_final.head(60000).to_csv(os.path.join(test_dir, 'test_healthy.csv'), index=False)
+
 if __name__=="__main__":
     funcion()

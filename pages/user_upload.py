@@ -49,9 +49,9 @@ else:
     
     umbral_gravedad = st.sidebar.slider(
         "Umbral de anomalía (Score)", 
-        min_value=-0.12, 
+        min_value=-0.10, 
         max_value=0.00, 
-        value=-0.04, 
+        value=-0.020, 
         step=0.005,
         format="%.3f", 
         help="Valores más grandes hacen que el sistema sea más sensible a las anomalías."
@@ -64,17 +64,32 @@ else:
                       delta_color="inverse")
     
     columnas_visibles = [c for c in df_final.columns if c not in ['timestamp', 'anomaly', 'anomaly_score', 'segment_file']]
-    variables = st.multiselect("Variables Reales a Visualizar", columnas_visibles)    
-    
+
+    mostrar_escaladas = st.sidebar.toggle(
+        "Mostrar variables escaladas (normalizar para comparar magnitudes)",
+        value=False,
+        help="Activa para visualizar las mismas variables después de aplicar el scaler, útil para comparar magnitudes."
+    )
+
+    variables = st.multiselect("Variables Reales a Visualizar", columnas_visibles)
+
     if variables:
         df_final['timestamp'] = pd.to_datetime(df_final['timestamp'])
-        
+
         df_final['trayecto_id'] = (df_final['timestamp'].diff().dt.total_seconds() > 300).cumsum()
-        
-        fig = px.line(df_final, x='timestamp', y=variables, line_group='trayecto_id', title="Evolución Temporal por Trayectos")
-        
+
+        # Preparar el dataframe que se usará para graficar.
+        # Si el usuario solicita ver las variables escaladas, sustituimos
+        # las columnas originales por las escaladas para facilitar la comparación.
+        df_plot = df_final.copy()
+        if mostrar_escaladas:
+            df_scaled.index = df_plot.index
+            df_plot[[c for c in columnas_ia]] = df_scaled.values
+
+        fig = px.line(df_plot, x='timestamp', y=variables, line_group='trayecto_id', title="Evolución Temporal por Trayectos")
+
         if not fallos.empty:
-            fallos_plot = fallos.copy()
+            fallos_plot = df_plot.loc[fallos.index].copy()
             fallos_plot['timestamp'] = pd.to_datetime(fallos_plot['timestamp'])
             for var in variables:
                 fig.add_trace(go.Scatter(
@@ -97,7 +112,7 @@ else:
         
         csv_buffer = df_reporte.to_csv(index=False).encode('utf-8')
         st.download_button(
-            label="📥Descargar CSV de Anomalías📥",
+            label="Descargar CSV de Anomalías",
             data=csv_buffer,
             file_name="reporte_anomalias_OBD2.csv",
             mime="text/csv"

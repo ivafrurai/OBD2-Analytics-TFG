@@ -6,8 +6,8 @@ def add_temporal_features(df):
     df['rpm_diff'] = group['rpm'].diff().fillna(0)
     df['speed_diff'] = group['speed'].diff().fillna(0)
     
-    df['stft_mean'] = group['stft'].transform(lambda x: x.rolling(window=5).mean()).bfill()
-    df['MAF_mean'] = group['MAF'].transform(lambda x: x.rolling(window=5).mean()).bfill()
+    df['stft_mean'] = group['stft'].transform(lambda x: x.rolling(window=5, min_periods=1).mean())
+    df['MAF_mean'] = group['MAF'].transform(lambda x: x.rolling(window=5, min_periods=1).mean())
 
     eps = 1e-5
     df['ratio_velocidad_rpm'] = df['speed'] / (df['rpm'] + eps)
